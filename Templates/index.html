@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Strength Evaluator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        #results {
+            margin-top: 30px;
+            display: none;
+        }
+
+        .strength-badge {
+            display: inline-block;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 18px;
+            margin-bottom: 20px;
+        }
+
+        .strength-weak { background: #fee; color: #c00; }
+        .strength-medium { background: #ffc; color: #880; }
+        .strength-strong { background: #cfc; color: #060; }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .feature-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .feature-label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .feature-value {
+            color: #333;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .breach-alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .breach-safe {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .breach-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Password Strength Evaluator</h1>
+        <p class="subtitle">Analyze your password strength and check for data breaches</p>
+
+        <div class="input-group">
+            <label for="password">Enter Password</label>
+            <input type="password" id="password" placeholder="Type your password here...">
+        </div>
+
+        <button onclick="analyzePassword()">🔍 Analyze Password</button>
+
+        <div id="results">
+            <div id="strength-result"></div>
+            <div class="features-grid" id="features"></div>
+            <div id="breach-result"></div>
+        </div>
+    </div>
+
+    <script>
+        async function analyzePassword() {
+            const password = document.getElementById('password').value;
+            
+            if (!password) {
+                alert('Please enter a password');
+                return;
+            }
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.style.display = 'block';
+            resultsDiv.innerHTML = '<p class="loading">🔄 Analyzing password...</p>';
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ password: password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayResults(data);
+                } else {
+                    resultsDiv.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                }
+            } catch (error) {
+                resultsDiv.innerHTML = '<p style="color: red;">Network error. Please try again.</p>';
+            }
+        }
+
+        function displayResults(data) {
+            const strengthClass = `strength-${data.strength.toLowerCase()}`;
+            
+            let html = `
+                <div>
+                    <span class="strength-badge ${strengthClass}">
+                        Strength: ${data.strength}
+                    </span>
+                </div>
+
+                <div class="features-grid">
+                    <div class="feature-box">
+                        <div class="feature-label">Length</div>
+                        <div class="feature-value">${data.length}</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-label">Digits</div>
+                        <div class="feature-value">${data.features.digits}</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-label">Uppercase</div>
+                        <div class="feature-value">${data.features.uppercase}</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-label">Lowercase</div>
+                        <div class="feature-value">${data.features.lowercase}</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-label">Special Chars</div>
+                        <div class="feature-value">${data.features.special_chars}</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-label">Entropy</div>
+                        <div class="feature-value">${data.features.entropy.toFixed(2)}</div>
+                    </div>
+                </div>
+
+                <div class="breach-alert ${data.breach_info.is_breached ? 'breach-danger' : 'breach-safe'}">
+                    <strong>🛡️ Breach Check:</strong><br>
+                    ${data.breach_info.message}
+                </div>
+            `;
+
+            document.getElementById('results').innerHTML = html;
+        }
+
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                analyzePassword();
+            }
+        });
+    </script>
+</body>
+</html>
