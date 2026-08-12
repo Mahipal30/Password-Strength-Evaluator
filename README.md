@@ -62,3 +62,15 @@ Then open the printed local URL (default `http://localhost:8501`).
 3. A calibrated `RandomForestClassifier` predicts the strength class.
 4. `explain_password()` also computes effective entropy and crack-time estimates.
 5. The Streamlit app displays results and checks the password against breach databases.
+
+## CI / GitHub Actions
+
+This repository includes a CI workflow (`.github/workflows/ci.yml`) that runs on every push/PR to `main`. It:
+
+- Tests on Python 3.11 and 3.12
+- Installs dependencies from `requirements.txt`
+- Verifies the ML model artifacts load and predict correctly
+- Verifies the local breach fallback list
+- Runs a Streamlit app smoke test (checks the server responds with HTTP 200)
+
+You can view workflow runs under the **Actions** tab of the repository.

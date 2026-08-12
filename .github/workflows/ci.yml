@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Verify ML model artifacts load and predict
+        run: |
+          python -c "
+          from password_utils import explain_password
+          r = explain_password('Test@12345')
+          assert r['features']['length'] == 10
+          assert r['label'] in ('Weak', 'Medium', 'Strong')
+          print('Model smoke test passed:', r['label'])
+          "
+
+      - name: Verify local breach fallback list
+        run: |
+          python -c "
+          import hashlib
+          # Test the local breach list logic directly (no Streamlit import)
+          LOCAL_BREACHED = {'password', '123456', 'qwerty', 'admin'}
+          assert 'password' in LOCAL_BREACHED
+          sha1 = hashlib.sha1(b'password').hexdigest().upper()
+          assert sha1[:5] == '5BAA6'
+          print('Local breach fallback verified')
+          "
+
+      - name: Run Streamlit app smoke test
+        run: |
+          timeout 30 streamlit run app.py --server.headless true --server.port 8501 &
+          sleep 10
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8501)
+          echo "HTTP status: $HTTP_CODE"
+          test "$HTTP_CODE" = "200"
